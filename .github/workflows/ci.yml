@@ -1,0 +1,120 @@
+name: MLOps CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest flake8
+
+      - name: Lint
+        run: |
+          flake8 train.py src/ tests/ eda.py modeling.py mlflow_tracking.py download_data.py app.py
+
+      - name: Run Tests
+        run: |
+          pytest tests/ -v --junitxml=test-results.xml
+
+      - name: Train Model
+        run: |
+          python train.py
+
+      - name: Upload Model
+        uses: actions/upload-artifact@v4
+        with:
+          name: trained-model
+          path: artifacts/
+
+      - name: Upload Logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: training-logs
+          path: logs/
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results.xml
+
+      # ---- Task 6: Model Containerization ----
+      - name: Prepare model file for Docker build
+        run: |
+          cp artifacts/heart_disease_model.joblib heart_disease_pipeline.joblib
+
+      - name: Build Docker image
+        run: |
+          docker build -t heart-disease-api:latest .
+
+      - name: Run container and test /predict directly
+        run: |
+          docker run -d --name heart-disease-api-test -p 8000:8000 heart-disease-api:latest
+          sleep 6
+          echo "----- Sample request -----"
+          curl -sf -X POST http://localhost:8000/predict \
+            -H "Content-Type: application/json" \
+            -d '{"age":63,"sex":1,"cp":3,"trestbps":145,"chol":233,"fbs":1,"restecg":0,"thalach":150,"exang":0,"oldpeak":2.3,"slope":3,"ca":0,"thal":6}'
+          echo ""
+          echo "----- Container logs -----"
+          docker logs heart-disease-api-test
+          docker stop heart-disease-api-test
+          docker rm heart-disease-api-test
+
+      # ---- Task 7: Production Deployment (real Kubernetes cluster via kind) ----
+      - name: Create kind (local Kubernetes) cluster
+        uses: helm/kind-action@v1.10.0
+        with:
+          cluster_name: heart-disease-cluster
+
+      - name: Load Docker image into the cluster
+        run: |
+          kind load docker-image heart-disease-api:latest --name heart-disease-cluster
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f deployment.yaml
+          kubectl apply -f service.yaml
+          kubectl rollout status deployment/heart-disease-deployment --timeout=90s
+
+      - name: Verify deployment (screenshot-worthy output)
+        run: |
+          echo "----- kubectl get deployments -----"
+          kubectl get deployments -o wide
+          echo "----- kubectl get pods -----"
+          kubectl get pods -o wide
+          echo "----- kubectl get svc -----"
+          kubectl get svc
+
+      - name: Test the deployed API through the Service
+        run: |
+          kubectl port-forward svc/heart-disease-service 8080:80 &
+          PF_PID=$!
+          sleep 5
+          echo "----- Prediction request through the deployed Service -----"
+          curl -sf -X POST http://localhost:8080/predict \
+            -H "Content-Type: application/json" \
+            -d '{"age":63,"sex":1,"cp":3,"trestbps":145,"chol":233,"fbs":1,"restecg":0,"thalach":150,"exang":0,"oldpeak":2.3,"slope":3,"ca":0,"thal":6}'
+          kill $PF_PID
+
+      - name: Tear down cluster
+        if: always()
+        run: |
+          kind delete cluster --name heart-disease-cluster || true

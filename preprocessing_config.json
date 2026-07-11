@@ -1,0 +1,7 @@
+{
+    "target_column": "num",
+    "scaler": "StandardScaler",
+    "model": "RandomForestClassifier",
+    "n_estimators": 200,
+    "random_state": 42
+}

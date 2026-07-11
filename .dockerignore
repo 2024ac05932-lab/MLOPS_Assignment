@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.git
+.github
+tests/
+eda_plots/
+*.ipynb
+*.log
+logs/
+screenshots/
+.pytest_cache/
+data/

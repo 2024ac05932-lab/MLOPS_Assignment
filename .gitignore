@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+venv/
+.venv/
+*.log
+mlruns/
+mlflow.db
+heart_disease_pipeline.joblib
+heart_disease_pipeline.pkl
+data/
+.DS_Store
