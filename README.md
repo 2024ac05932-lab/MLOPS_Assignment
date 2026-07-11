@@ -148,5 +148,3 @@ written report for detailed results and discussion.
   in a single `sklearn.Pipeline`, so raw feature order in `/predict` requests
   must match: `age, sex, cp, trestbps, chol, fbs, restecg, thalach, exang, oldpeak, slope, ca, thal`.
 =======
-# MLOPS_Assignment
->>>>>>> 151569d1058ebbddf6d9a4cbf5436cbc8c30879e
