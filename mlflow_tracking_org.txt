@@ -118,9 +118,6 @@ def main():
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
 
-    # Set custom experiment name so runs group nicely together in the UI
-    mlflow.set_experiment("Heart_Disease_Classification")
-
     track_logistic_regression(X_train_scaled, X_test_scaled, y_train, y_test)
     track_random_forest(X_train, X_test, y_train, y_test)
 
