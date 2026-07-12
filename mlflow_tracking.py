@@ -11,6 +11,7 @@ Run with:
 View the MLflow UI at http://localhost:5000 after running `mlflow ui`
 from the same directory (it reads the local ./mlruns folder).
 """
+import time
 import matplotlib.pyplot as plt
 import mlflow
 import mlflow.sklearn
@@ -27,6 +28,8 @@ import pandas as pd
 
 from src.preprocessing import clean_heart_disease_df, split_features_target
 
+# Force MLflow to monitor system resources during runs
+mlflow.enable_system_metrics_logging()
 
 def load_data():
     heart_disease = fetch_ucirepo(id=45)
@@ -68,6 +71,10 @@ def track_logistic_regression(X_train_scaled, X_test_scaled, y_train, y_test):
         mlflow.log_artifact("lr_roc_curve.png")
         plt.close()
 
+        # Artificially keep run open so system monitoring has time to collect samples
+        print("Holding run open to gather system metrics for Logistic Regression...")
+        time.sleep(20)
+
         print("Logistic Regression Logged Successfully")
     return lr_model
 
@@ -105,6 +112,10 @@ def track_random_forest(X_train, X_test, y_train, y_test):
         mlflow.log_artifact("rf_roc_curve.png")
         plt.close()
 
+        # Artificially keep run open so system monitoring has time to collect samples
+        print("Holding run open to gather system metrics for Random Forest...")
+        time.sleep(20)
+
         print("Random Forest Logged Successfully")
     return rf_model
 
@@ -117,9 +128,6 @@ def main():
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
-
-    # Set custom experiment name so runs group nicely together in the UI
-    mlflow.set_experiment("Heart_Disease_Classification")
 
     track_logistic_regression(X_train_scaled, X_test_scaled, y_train, y_test)
     track_random_forest(X_train, X_test, y_train, y_test)
