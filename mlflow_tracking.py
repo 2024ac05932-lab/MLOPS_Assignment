@@ -31,6 +31,7 @@ from src.preprocessing import clean_heart_disease_df, split_features_target
 # Force MLflow to monitor system resources during runs
 mlflow.enable_system_metrics_logging()
 
+
 def load_data():
     heart_disease = fetch_ucirepo(id=45)
     df = pd.concat([heart_disease.data.features, heart_disease.data.targets], axis=1)
